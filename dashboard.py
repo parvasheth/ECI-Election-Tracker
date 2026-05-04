@@ -72,21 +72,33 @@ def load_data():
         creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
         
     client = gspread.authorize(creds)
-    sheet = client.open_by_key("1mTnwDbsvtq0WcKsfgjJALY8ajoGM_ZOAD72yTmZcGmM").sheet1
+    spreadsheet = client.open_by_key("1mTnwDbsvtq0WcKsfgjJALY8ajoGM_ZOAD72yTmZcGmM")
+    
+    sheet = spreadsheet.sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
     
     # Clean Margin column if it exists
     if 'Margin' in df.columns:
         df['Margin'] = pd.to_numeric(df['Margin'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+        
+    # Load Vote Share data
+    try:
+        vs_sheet = spreadsheet.worksheet("Vote_Share")
+        vs_data = vs_sheet.get_all_records()
+        vs_df = pd.DataFrame(vs_data)
+        if 'Vote %' in vs_df.columns:
+            vs_df['Vote %'] = pd.to_numeric(vs_df['Vote %'].astype(str).str.replace('%', ''), errors='coerce').fillna(0)
+    except Exception:
+        vs_df = pd.DataFrame()
     
-    return df
+    return df, vs_df
 
 st.markdown("<h1>🗳️ West Bengal Election 2026 - Live Dashboard</h1>", unsafe_allow_html=True)
 
 with st.spinner("Fetching Live Data from Google Sheets..."):
     try:
-        df = load_data()
+        df, vs_df = load_data()
     except Exception as e:
         st.error(f"Failed to load data: {e}")
         st.stop()
@@ -135,17 +147,19 @@ with c1:
     fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
     st.plotly_chart(fig_pie, use_container_width=True)
 
-    if 'Margin' in df.columns:
-        st.subheader("📈 Total Margin Share by Party")
-        margin_by_party = df.groupby(party_col)['Margin'].sum().sort_values(ascending=False)
-        fig_margin_pie = px.pie(
-            values=margin_by_party.values, 
-            names=margin_by_party.index, 
+    if not vs_df.empty and 'Party' in vs_df.columns and 'Vote %' in vs_df.columns:
+        st.subheader("📈 State Vote Share %")
+        # Filter out tiny shares for cleaner chart
+        chart_vs_df = vs_df[vs_df['Vote %'] > 0.5]
+        fig_vs_pie = px.pie(
+            chart_vs_df,
+            values='Vote %', 
+            names='Party', 
             hole=0.4,
             color_discrete_sequence=px.colors.qualitative.Pastel
         )
-        fig_margin_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
-        st.plotly_chart(fig_margin_pie, use_container_width=True)
+        fig_vs_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
+        st.plotly_chart(fig_vs_pie, use_container_width=True)
 
 with c2:
     if 'Margin' in df.columns and candidate_col and constituency_col:
