@@ -52,6 +52,28 @@ st.markdown("""
         border-radius: 10px;
         overflow: hidden;
     }
+    
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+        }
+        .metric-value {
+            font-size: 1.8rem;
+        }
+        .metric-label {
+            font-size: 0.85rem;
+        }
+        .metric-card {
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        /* Ensure tables scroll smoothly on touch devices */
+        .stDataFrame {
+            -webkit-overflow-scrolling: touch;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
