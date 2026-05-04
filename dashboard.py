@@ -132,8 +132,20 @@ with c1:
         hole=0.4,
         color_discrete_sequence=px.colors.qualitative.Bold
     )
-    fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white")
+    fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
     st.plotly_chart(fig_pie, use_container_width=True)
+
+    if 'Margin' in df.columns:
+        st.subheader("📈 Total Margin Share by Party")
+        margin_by_party = df.groupby(party_col)['Margin'].sum().sort_values(ascending=False)
+        fig_margin_pie = px.pie(
+            values=margin_by_party.values, 
+            names=margin_by_party.index, 
+            hole=0.4,
+            color_discrete_sequence=px.colors.qualitative.Pastel
+        )
+        fig_margin_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
+        st.plotly_chart(fig_margin_pie, use_container_width=True)
 
 with c2:
     if 'Margin' in df.columns and candidate_col and constituency_col:
