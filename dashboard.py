@@ -187,6 +187,20 @@ with col4:
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
+# Define Party Colors
+party_colors = {
+    "Bharatiya Janata Party": "#FF9933",
+    "BJP": "#FF9933",
+    "All India Trinamool Congress": "#00AEEF",
+    "AITC": "#00AEEF",
+    "Indian National Congress": "#19AAED",
+    "INC": "#19AAED",
+    "Communist Party of India (Marxist)": "#FF1D15",
+    "CPI(M)": "#FF1D15",
+    "All India Secular Front": "#7bfb79",
+    "AISF": "#7bfb79"
+}
+
 # Charts Section
 c1, c2 = st.columns(2)
 
@@ -196,7 +210,8 @@ with c1:
         values=party_counts.values, 
         names=party_counts.index, 
         hole=0.4,
-        color_discrete_sequence=px.colors.qualitative.Bold
+        color=party_counts.index,
+        color_discrete_map=party_colors
     )
     fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
     st.plotly_chart(fig_pie, use_container_width=True)
@@ -210,7 +225,8 @@ with c1:
             values='Vote %', 
             names='Party', 
             hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
+            color='Party',
+            color_discrete_map=party_colors
         )
         fig_vs_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white", margin=dict(t=0, b=0, l=0, r=0))
         st.plotly_chart(fig_vs_pie, use_container_width=True)
