@@ -82,6 +82,32 @@ def load_data():
     if 'Margin' in df.columns:
         df['Margin'] = pd.to_numeric(df['Margin'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
         
+    # Calculate Round / Counting Progress
+    if 'Round' in df.columns:
+        def parse_round(val, status):
+            val = str(val).strip()
+            if str(status).strip() == 'Result Declared':
+                return 100.0, 1, 1
+            if '/' in val:
+                try:
+                    curr, tot = val.split('/')
+                    curr = int(curr.strip())
+                    tot = int(tot.strip())
+                    if tot > 0:
+                        return min(100.0, round((curr / tot) * 100, 1)), curr, tot
+                except:
+                    pass
+            return 0.0, 0, 0
+            
+        parsed = df.apply(lambda row: parse_round(row.get('Round', ''), row.get('Status', '')), axis=1)
+        df['% Counted'] = [p[0] for p in parsed]
+        df['Curr_Round'] = [p[1] for p in parsed]
+        df['Tot_Round'] = [p[2] for p in parsed]
+    else:
+        df['% Counted'] = 0.0
+        df['Curr_Round'] = 0
+        df['Tot_Round'] = 0
+        
     # Load Vote Share data
     try:
         vs_sheet = spreadsheet.worksheet("Vote_Share")
@@ -118,18 +144,24 @@ if not party_col:
     st.stop()
 
 # Top Metrics
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 total_seats = len(df)
 party_counts = df[party_col].value_counts()
 leading_party = party_counts.index[0] if not party_counts.empty else "N/A"
 leading_seats = party_counts.iloc[0] if not party_counts.empty else 0
 
+overall_progress = 0.0
+if 'Tot_Round' in df.columns and df['Tot_Round'].sum() > 0:
+    overall_progress = round((df['Curr_Round'].sum() / df['Tot_Round'].sum()) * 100, 1)
+
 with col1:
-    st.markdown(f'<div class="metric-card"><div class="metric-label">Total Constituencies Declared/Leading</div><div class="metric-value">{total_seats}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><div class="metric-label">Constituencies Known</div><div class="metric-value">{total_seats}</div></div>', unsafe_allow_html=True)
 with col2:
     st.markdown(f'<div class="metric-card"><div class="metric-label">Leading Party</div><div class="metric-value">{leading_party}</div></div>', unsafe_allow_html=True)
 with col3:
     st.markdown(f'<div class="metric-card"><div class="metric-label">Seats for {leading_party}</div><div class="metric-value">{leading_seats}</div></div>', unsafe_allow_html=True)
+with col4:
+    st.markdown(f'<div class="metric-card"><div class="metric-label">Total Counting Progress</div><div class="metric-value">{overall_progress}%</div></div>', unsafe_allow_html=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
@@ -228,12 +260,12 @@ if not swing_seats_df.empty:
         col_a, col_b = st.columns(2)
         with col_a:
             st.write("### 🛡️ Vulnerable Seats (Currently Leading)")
-            vuln_df = swing_seats_df[swing_seats_df[party_col] == selected_party][['Constituency', trailing_party_col, 'Margin']].sort_values('Margin')
+            vuln_df = swing_seats_df[swing_seats_df[party_col] == selected_party][['Constituency', trailing_party_col, 'Margin', '% Counted']].sort_values('Margin')
             st.dataframe(vuln_df, use_container_width=True)
         
         with col_b:
             st.write("### 🎯 Opportunities (Currently Trailing)")
-            opp_df = swing_seats_df[swing_seats_df[trailing_party_col] == selected_party][['Constituency', party_col, 'Margin']].sort_values('Margin')
+            opp_df = swing_seats_df[swing_seats_df[trailing_party_col] == selected_party][['Constituency', party_col, 'Margin', '% Counted']].sort_values('Margin')
             st.dataframe(opp_df, use_container_width=True)
     else:
         st.info("Trailing Party column not found, cannot calculate opportunities.")
